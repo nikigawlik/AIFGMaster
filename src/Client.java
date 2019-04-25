@@ -11,7 +11,7 @@ import lenz.htw.sawhian.net.NetworkClient;
 
 public class Client extends Thread {
     public static void main(String[] args) {
-        for(int i = 0; i < 4; i++) {
+        for (int i = 0; i < 4; i++) {
             Client c = new Client();
             c.start();
         }
@@ -37,11 +37,11 @@ public class Client extends Thread {
             System.out.println("No user image specified.");
             System.out.println(e);
         }
-        
+
         this.random = new Random();
 
         this.client = new NetworkClient(null, "Bobobot" + (10 + random.nextInt(90)), logo);
-        
+
         this.id = client.getMyPlayerNumber();
         this.timeLimit = client.getTimeLimitInSeconds();
         client.getExpectedNetworkLatencyInMilliseconds();
@@ -49,18 +49,58 @@ public class Client extends Thread {
         this.gameState = new GameState();
 
         while (true) {
-            Move move = client.receiveMove();
+            Move move;
+
+            
+            try {
+                move = client.receiveMove();
+            } catch (RuntimeException e) {
+                // e.printStackTrace();
+                // System.out.println("game state: " + gameState.toString());
+                break;
+            }
+
+            long t0 = System.nanoTime();
+
+            if (this.id == 0) {
+                // print
+                // System.out.println(gameState.toString());
+            }
+
             if (move == null) {
-                ArrayList<Move> moves = gameState.getPossibleMoves(this.id);
-                if(moves.size() > 0) {
-                    move = moves.get(random.nextInt(moves.size()));
+                // ArrayList<Move> moves = gameState.getPossibleMoves(this.id);
+                // if(moves.size() > 0) {
+                // move = moves.get(random.nextInt(moves.size()));
+                // client.sendMove(move);
+                // } else {
+                // System.out.println("NO POSSIBLE MOVES!");
+                // }
+
+                GameTreeEvaluator gte = new GameTreeEvaluator(gameState, this.id, 9);
+                logTimedStatus(this.id, t0, "start calculation.");
+                gte.start();
+                try {
+                    Thread.sleep(3500);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                logTimedStatus(this.id, t0, "aborting search.");
+                move = gte.getResult(true);
+                logTimedStatus(this.id, t0, "search aborted.");
+                if(move != null) {
                     client.sendMove(move);
+                    logTimedStatus(this.id, t0, "move sent.");
                 } else {
                     System.out.println("NO POSSIBLE MOVES!");
                 }
+
             } else {
                 gameState.performMove(move);
             }
         }
+    }
+
+    private void logTimedStatus(int playerID, long t0, String message) {
+        System.out.println("p" + playerID + ": " + message + " t+" + ((System.nanoTime() - t0) / 1000000) + "ms");
     }
 }
