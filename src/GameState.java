@@ -31,7 +31,7 @@ class GameState {
     // The dimensions always add up to zero
 	public float[] evaluate() {
         float[] balance = new float[4];
-        
+
         float sum = 0;
 
         // add win points
@@ -298,7 +298,26 @@ class GameState {
                 System.out.println(line);
             }
         }
+    }
+
+	public boolean isEndState() {
+        for(int i = 0; i < 4; i++) {
+            if(playerPoints[i] == 7) {
+                return true;
+            }
+        }
+		return false;
     } 
+    
+    public float[] evaluateEndState() {
+       float[] balance = new float[4];
+       
+        for(int i = 0; i < 4; i++) {
+            balance[i] = playerPoints[i] == 7? Float.MAX_VALUE : -Float.MAX_VALUE;
+        }
+
+        return balance;
+    }
 
     // public static void main(String[] args) {
     //     testTransform();

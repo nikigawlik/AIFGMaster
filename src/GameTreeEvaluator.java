@@ -8,6 +8,8 @@ class GameTreeEvaluator extends Thread {
         GameState gameState = new GameState();
         Scanner scanner = new Scanner(System.in);
         int playerID = 0;
+        boolean skipInput = false;
+        int passCount = 0;
 
         while(true) {
             System.out.println(gameState.toString());
@@ -16,15 +18,25 @@ class GameTreeEvaluator extends Thread {
             Move move = gte.getResult(false);
             System.out.println("Best move: " + move);
 
-            String str = scanner.nextLine();
-            if(str.equals("q")) {
-                break;
+            if(!skipInput){
+                String str = scanner.nextLine();
+                if(str.equals("q")) {
+                    break;
+                } else if(str.equals("s")) {
+                    skipInput = true;
+                }
             }
 
             if(move != null) {
                 gameState.performMove(move);
+                passCount = 0;
             } else {
+                passCount++;
                 System.out.println("pass");
+                if(passCount == 4) {
+                    // all players passed, gameover
+                    break;
+                }
             }
             System.out.println("---");
 
@@ -82,17 +94,24 @@ class GameTreeEvaluator extends Thread {
         return maxMove;
     }
 
-    private static final float[] MIN_BALANCE = {-Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE, -Float.MAX_VALUE};
+    private static final float[][] MIN_BALANCE = { 
+        {-Float.MAX_VALUE, 0f, 0f, 0f},
+        {0f, -Float.MAX_VALUE, 0f, 0f},
+        {0f, 0f, -Float.MAX_VALUE, 0f},
+        {0f, 0f, 0f, -Float.MAX_VALUE},
+    };
 
     private float[] evaluateSubtree(GameState gameState, int playerID, int maxDepth, int depth){
         if(stop) {
-            return MIN_BALANCE;
+            return MIN_BALANCE[playerID];
         }
 
-        if(depth >= maxDepth) {
+        if(gameState.isEndState()){
+            return gameState.evaluateEndState();
+        } else if(depth >= maxDepth) {
             return gameState.evaluate();
         } else {
-            float[] maxBalance = MIN_BALANCE;
+            float[] maxBalance = MIN_BALANCE[playerID];
             for (Move move : gameState.getPossibleMoves(playerID)) {
                 float[] balance = evaluateSubtree(new GameState(gameState, move), playerAfter(playerID), maxDepth, depth + 1);
                 if(balance[playerID] > maxBalance[playerID]) {
