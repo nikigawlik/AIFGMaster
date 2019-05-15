@@ -17,7 +17,7 @@ class GameTreeEvaluator extends Thread {
             gte.start();
             Move move = gte.getResult(false);
             System.out.println("Best move: " + move);
-
+            
             if(!skipInput){
                 String str = scanner.nextLine();
                 if(str.equals("q")) {
@@ -26,7 +26,7 @@ class GameTreeEvaluator extends Thread {
                     skipInput = true;
                 }
             }
-
+            
             if(move != null) {
                 gameState.performMove(move);
                 passCount = 0;
@@ -39,26 +39,33 @@ class GameTreeEvaluator extends Thread {
                 }
             }
             System.out.println("---");
-
+            
             playerID = playerAfter(playerID);
         }
-
+        
         scanner.close();
     }
-
+    
     // should be set to true to stop calculation
     private boolean stop;
-
+    
     private GameState gameState;
     private int playerID;
     private int maxDepth;
-
+    
     private Move result;
 
+    public float[] evalWeights;
+
     public GameTreeEvaluator(GameState gameState, int playerID, int maxDepth) {
+        this(gameState, playerID, maxDepth, new float[] {1f, 0f, 0f, 0f});
+    }
+    
+    public GameTreeEvaluator(GameState gameState, int playerID, int maxDepth, float[] evalWeights) {
         this.gameState = gameState;
         this.playerID = playerID;
         this.maxDepth = maxDepth;
+        this.evalWeights = evalWeights;
     }
 
     // wait for the thread to finish and return result
@@ -109,7 +116,7 @@ class GameTreeEvaluator extends Thread {
         if(gameState.isEndState()){
             return gameState.evaluateEndState();
         } else if(depth >= maxDepth) {
-            return gameState.evaluate();
+            return gameState.evaluate(evalWeights);
         } else {
             float[] maxBalance = MIN_BALANCE[playerID];
             for (Move move : gameState.getPossibleMoves(playerID)) {

@@ -3,12 +3,20 @@ import java.util.ArrayList;
 import lenz.htw.sawhian.Move;
 
 class GameState {
+    public final static int EVAL_TUPLE_SIZE = 4;
     // 0 = empty, 1 = player1, 2 = player2, ...
     private int[][] field;
     private int[] playerStacks;
     private int[] playerPoints;
 
+    private float[][] playerWeights;
+
     public GameState() {
+        this(null);
+    }
+
+    public GameState(float[][] playerWeights) {
+        this.playerWeights = playerWeights;
         // start with empty field
         field = new int[7][7];
         // start with 7 stones per player
@@ -29,14 +37,21 @@ class GameState {
 
     // assign a 4-dimensional vector to the current field position. Each dimension is the current strength of a player.
     // The dimensions always add up to zero
-	public float[] evaluate() {
+	public float[] evaluate(float[] weights) {
+        //weight documentation:
+        // 0 - stone progression
+        // 1 - stones held back in hand
+        // 2 - stones that left the board
+        // 3 - randomn
         float[] balance = new float[4];
-
         float sum = 0;
 
         // add win points
         for(int i = 0; i < 4; i++) {
-            balance[i] += playerPoints[i] * 8; // has to count for at least one more than max distance stone on field (7)
+            balance[i] += playerPoints[i] * 8 * weights[0]; // has to count for at least one more than max distance stone on field (7)
+            balance[i] += playerStacks[i] * weights[1];
+            balance[i] += playerPoints[i] * weights[2];
+            // balance[i] += (float) Math.random() * weights[3];
         }
 
         for(int x = 0; x < 7; x++)
@@ -48,7 +63,7 @@ class GameState {
                 int playerID = tileID - 1;
                 int locY = localY(playerID, x, y);
                 // points for that player
-                balance[playerID] += locY + 1;
+                balance[playerID] += (locY + 1) * weights[0];
                 sum += locY;
             }
         }
@@ -57,6 +72,25 @@ class GameState {
         float offset = -sum / 4.0f;
         for(int i = 0; i < 4; i++) {
             balance[i] += offset;
+        }
+
+        return balance;
+    }
+
+	public boolean isEndState() {
+        for(int i = 0; i < 4; i++) {
+            if(playerPoints[i] == 7) {
+                return true;
+            }
+        }
+		return false;
+    } 
+    
+    public float[] evaluateEndState() {
+       float[] balance = new float[4];
+       
+        for(int i = 0; i < 4; i++) {
+            balance[i] = playerPoints[i] == 7? Float.MAX_VALUE : -Float.MAX_VALUE;
         }
 
         return balance;
@@ -268,6 +302,16 @@ class GameState {
         return y;
     }
 
+    public int getWinner() {
+        for(int i = 0; i < 4; i++) {
+            if(playerPoints[i] == 7) {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     // tests (no junit bec setting it up is a pain apparently)
     private static void testTransform() {
         char[][] testField = new char[7][7];
@@ -299,28 +343,4 @@ class GameState {
             }
         }
     }
-
-	public boolean isEndState() {
-        for(int i = 0; i < 4; i++) {
-            if(playerPoints[i] == 7) {
-                return true;
-            }
-        }
-		return false;
-    } 
-    
-    public float[] evaluateEndState() {
-       float[] balance = new float[4];
-       
-        for(int i = 0; i < 4; i++) {
-            balance[i] = playerPoints[i] == 7? Float.MAX_VALUE : -Float.MAX_VALUE;
-        }
-
-        return balance;
-    }
-
-    // public static void main(String[] args) {
-    //     testTransform();
-    // }
-
 }

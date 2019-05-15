@@ -76,7 +76,7 @@ public class Client extends Thread {
                 // System.out.println("NO POSSIBLE MOVES!");
                 // }
 
-                GameTreeEvaluator gte = new GameTreeEvaluator(gameState, this.id, 9);
+                GameTreeEvaluator gte = new GameTreeEvaluator(gameState, this.id, 9, new float[] {0.937f, 0.115f, -1.732f, 1.108f});
                 logTimedStatus(this.id, t0, "start calculation.");
                 gte.start();
                 try {

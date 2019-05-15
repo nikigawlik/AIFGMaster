@@ -2,11 +2,18 @@
     "configurations": [
         {
             "type": "java",
+            "name": "CodeLens (Launch) - AITrainer",
+            "request": "launch",
+            "mainClass": "AITrainer",
+            "projectName": "aifgm"
+        },
+        {
+            "type": "java",
             "name": "CodeLens (Launch) - GameTreeEvaluator",
             "request": "launch",
             "mainClass": "GameTreeEvaluator",
             "projectName": "aifgm",
-            "console":"integratedTerminal",
+            "console": "integratedTerminal"
         },
         {
             "type": "java",
