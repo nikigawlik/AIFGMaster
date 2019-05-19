@@ -3,20 +3,15 @@ import java.util.ArrayList;
 import lenz.htw.sawhian.Move;
 
 class GameState {
+    // size of tuples containing weights for the evaluation function
     public final static int EVAL_TUPLE_SIZE = 4;
-    // 0 = empty, 1 = player1, 2 = player2, ...
+    // values of a field: 0 = empty, 1 = player1, 2 = player2, ...
     private int[][] field;
-    private int[] playerStacks;
-    private int[] playerPoints;
+    private int[] playerStacks; // stones on players' hands
+    private int[] playerPoints; // points scored for each player
 
-    private float[][] playerWeights;
-
+    // default constructor, start position
     public GameState() {
-        this(null);
-    }
-
-    public GameState(float[][] playerWeights) {
-        this.playerWeights = playerWeights;
         // start with empty field
         field = new int[7][7];
         // start with 7 stones per player
@@ -24,9 +19,11 @@ class GameState {
         for(int i = 0; i < playerStacks.length; i++) {
             playerStacks[i] = 7;
         }
+        // and zero score per player
         playerPoints = new int[4];
     }
     
+    // creates a mutation of existing game state, after the move is performed
     public GameState(GameState gameState, Move move) {
         this.field = gameState.getPlayingField();
         this.playerStacks = gameState.getPlayerStacks();
@@ -35,14 +32,14 @@ class GameState {
         this.performMove(move);
     }
 
-    // assign a 4-dimensional vector to the current field position. Each dimension is the current strength of a player.
+    // assigns a 4-dimensional vector ("balance") to the current field position. Each dimension is the current strength of a player.
     // The dimensions always add up to zero
 	public float[] evaluate(float[] weights) {
-        //weight documentation:
+        // weight documentation:
         // 0 - stone progression
         // 1 - stones held back in hand
         // 2 - stones that left the board
-        // 3 - crowding
+        // 3 - crowding (keeping your stones close together)
         float[] balance = new float[4];
 
         // add win points
@@ -52,6 +49,7 @@ class GameState {
             balance[i] += playerPoints[i] * weights[2];
         }
 
+        // iterate over field
         for(int x = 0; x < 7; x++) {
             for(int y = 0; y < 7; y++) {
                 int tileID = tileAt(x, y);
@@ -63,13 +61,14 @@ class GameState {
                     // points for that player
                     balance[playerID] += (locY + 1) * weights[0];
 
+                    // calculate crowding value (test if stone of same player is in front of this stone)
                     if(locY < 6)
                         balance[playerID] += tileAtLocal(playerID, locX, locY+1) == playerID? weights[3] : 0;
                 }
             }
         }
 
-        // offset by average
+        // offset by average to normalize
         float offset = -(balance[0] + balance[1] + balance[2] + balance[3]) / 4.0f;
         for(int i = 0; i < 4; i++) {
             balance[i] += offset;
@@ -78,6 +77,7 @@ class GameState {
         return balance;
     }
 
+    // tests if the game state is a win by points for a player
 	public boolean isEndState() {
         for(int i = 0; i < 4; i++) {
             if(playerPoints[i] == 7) {
@@ -87,6 +87,7 @@ class GameState {
 		return false;
     } 
     
+    // give a balance for an end state
     public float[] evaluateEndState() {
        float[] balance = new float[4];
        
@@ -273,7 +274,7 @@ class GameState {
 
         return str;
     }
-    // rotates playing field by 90 degrees counterclockwise <r> times.
+    
     final static int[] COS = {1, 0, -1, 0};
     final static int[] SIN = {0, 1, 0, -1}; 
     

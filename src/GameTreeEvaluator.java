@@ -3,7 +3,9 @@ import java.util.Scanner;
 
 import lenz.htw.sawhian.Move;
 
+// class to evaluate a specific game state from the perspective of a specific player
 class GameTreeEvaluator extends Thread {
+    // The main method is used to simulate a game in the console without a server
     public static void main(String[] args) {
         GameState gameState = new GameState();
         Scanner scanner = new Scanner(System.in);
@@ -19,6 +21,7 @@ class GameTreeEvaluator extends Thread {
             System.out.println("Best move: " + move);
             
             if(!skipInput){
+                System.out.println("Press enter for next move, q to quit, or s to let the game play out without user input");
                 String str = scanner.nextLine();
                 if(str.equals("q")) {
                     break;
@@ -40,13 +43,13 @@ class GameTreeEvaluator extends Thread {
             }
             System.out.println("---");
             
-            playerID = playerAfter(playerID);
+            playerID = (playerID + 1) & 0b11;
         }
         
         scanner.close();
     }
     
-    // should be set to true to stop calculation
+    // can be set to true from another thread to stop calculation
     private boolean stop;
     
     private GameState gameState;
@@ -57,10 +60,12 @@ class GameTreeEvaluator extends Thread {
 
     public float[] evalWeights;
 
+    // evaluate a game state with default player weights
     public GameTreeEvaluator(GameState gameState, int playerID, int maxDepth) {
         this(gameState, playerID, maxDepth, new float[] {1f, 0f, 0f, 0f});
     }
     
+    // evaluate a game with specified player weights
     public GameTreeEvaluator(GameState gameState, int playerID, int maxDepth, float[] evalWeights) {
         this.gameState = gameState;
         this.playerID = playerID;
@@ -80,14 +85,17 @@ class GameTreeEvaluator extends Thread {
         return result;
     }
 
+    // get the result without starting as a thread. Less overheads, but locks and can't be terminated 
     public Move getResultDirect() {
         return getMoveFor(this.gameState, this.playerID, this.maxDepth);
     }
 
+    // called when started as thread. Calculates the result and stores it for when it is needed
     public void run() {
         result = getMoveFor(this.gameState, this.playerID, this.maxDepth);
     }
 
+    // calculates the best move for this gameState with it being playerID's turn
     private Move getMoveFor(GameState gameState, int playerID, int maxDepth) {
         ArrayList<Move> moves = gameState.getPossibleMoves(playerID);
 
@@ -95,7 +103,7 @@ class GameTreeEvaluator extends Thread {
         Move maxMove = null;
 
         for (Move move : moves) {
-            float[] balance = evaluateSubtree(new GameState(gameState, move), playerAfter(playerID), maxDepth, 1, max);
+            float[] balance = evaluateSubtree(new GameState(gameState, move), (playerID + 1) & 0b11, maxDepth, 1, max);
             if(balance[playerID] > max){
                 max = balance[playerID];
                 maxMove = move;
@@ -112,6 +120,7 @@ class GameTreeEvaluator extends Thread {
         {0f, 0f, 0f, -Float.MAX_VALUE},
     };
 
+    // evaluates the balance (normalized chance to win for each player) for this game position 
     private float[] evaluateSubtree(GameState gameState, int playerID, int maxDepth, int depth, float max){
         int prevPlayerID = playerID-1 & 0b11;
         if(stop) {
@@ -119,22 +128,25 @@ class GameTreeEvaluator extends Thread {
         }
 
         if(gameState.isEndState()){
+            // handle end states differently
             return gameState.evaluateEndState();
         } else if(depth >= maxDepth) {
+            // use heuristic when we have reached maximum depth
             return gameState.evaluate(evalWeights);
         } else {
+            // otherwise recursively find the best move in the sub-trees
             float[] bestBalance = MIN_BALANCE[playerID];
 
             for (Move move : gameState.getPossibleMoves(playerID)){
                 float[] balance = evaluateSubtree(
                     new GameState(gameState, move), 
-                    playerAfter(playerID), 
+                    (playerID + 1) & 0b11, 
                     maxDepth, 
                     depth + 1, 
                     bestBalance[playerID]
                 );
 
-                // the best balance is the balance that is better for me
+                // the best balance is the balance that is better for me, other approaches possible
                 if(balance[playerID] > bestBalance[playerID]) {
                     bestBalance = balance;
                 }
@@ -148,9 +160,5 @@ class GameTreeEvaluator extends Thread {
 
             return bestBalance;
         }
-    }
-
-    private static int playerAfter(int playerID) {
-        return (playerID + 1) & 0b11;
     }
 }

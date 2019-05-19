@@ -1,7 +1,6 @@
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Random;
 
 import javax.imageio.ImageIO;
@@ -11,6 +10,7 @@ import lenz.htw.sawhian.net.NetworkClient;
 
 public class Client extends Thread {
     public static void main(String[] args) {
+        // start 4 clients for testing purposes
         for (int i = 0; i < 4; i++) {
             Client c = new Client();
             c.start();
@@ -24,7 +24,7 @@ public class Client extends Thread {
     private Random random;
 
     // static final private float[] WEIGHTS = new float[] {1.645f, -1.119f, -0.617f, 0.692f};
-    static final private float[] WEIGHTS = new float[] {1.436f, -0.378f, -0.541f, -0.366f};
+    static final private float[] WEIGHTS = new float[] {1.436f, -0.378f, -0.541f, -0.366f}; // values determined by genetic algorithm
     static final private int MAX_DEPTH = 10;
 
     public Client() {
@@ -43,17 +43,13 @@ public class Client extends Thread {
         }
 
         this.random = new Random();
-
         this.client = new NetworkClient(null, generateName(), logo);
-
         this.id = client.getMyPlayerNumber();
         this.timeLimit = (float)client.getTimeLimitInSeconds() - client.getExpectedNetworkLatencyInMilliseconds() / 1000f;
-
         this.gameState = new GameState();
 
         while (true) {
             Move move;
-
             
             try {
                 move = client.receiveMove();
@@ -71,6 +67,7 @@ public class Client extends Thread {
             }
 
             if (move == null) {
+                // my turn
                 GameTreeEvaluator gte = new GameTreeEvaluator(
                     gameState, 
                     this.id, 
@@ -80,6 +77,7 @@ public class Client extends Thread {
                 logTimedStatus(this.id, t0, "start calculation.");
                 gte.start();
 
+                // wait for GTE to finish, but wait for a maximum of timeLimit minus 200ms
                 try {
                     gte.join((long)(timeLimit * 1000 - 200));
                 } catch (InterruptedException e) {
@@ -97,15 +95,18 @@ public class Client extends Thread {
                 }
 
             } else {
+                // other players turn
                 gameState.performMove(move);
             }
         }
     }
 
+    // convenience function to log a message with player id and timestamp
     private void logTimedStatus(int playerID, long t0, String message) {
         System.out.println("p" + playerID + ": " + message + " t+" + ((System.nanoTime() - t0) / 1000000) + "ms");
     }
 
+    // simple name generator for funny player names
     private String generateName() {
         String[] kons = {"qu", "w", "wh", "r", "rr", "rh", "t", "th", "tz", "tr", "z", "zh", "p", "ph", "phl", "pt", "s", "sh", "sch", "sc", "sk", "sl", "sw", "sn", "d", "dh", "dn", "dw", "f", "fl", "fr", "g", "gh", "gl", "gr", "h", "k", "kl", "kh", "kr", "kw", "l", "y", "x", "c", "ch", "cl", "v", "vl", "b", "bl", "bh", "bw", "n", "nl", "nh", "m", "mh", "ml"};
         String[] vocs = {"a", "a", "aa", "au", "e", "ei", "ee", "eh", "i", "ii", "ie", "i", "o", "oo", "oof", "oh", "ou", "oe", "oau", "u", "uu", "u", "ui", "ue"};
