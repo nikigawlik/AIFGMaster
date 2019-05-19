@@ -52,7 +52,7 @@ class GameTreeEvaluator extends Thread {
     private GameState gameState;
     private int playerID;
     private int maxDepth;
-    
+
     private Move result;
 
     public float[] evalWeights;
@@ -95,7 +95,7 @@ class GameTreeEvaluator extends Thread {
         Move maxMove = null;
 
         for (Move move : moves) {
-            float[] balance = evaluateSubtree(new GameState(gameState, move), playerAfter(playerID), maxDepth, 1);
+            float[] balance = evaluateSubtree(new GameState(gameState, move), playerAfter(playerID), maxDepth, 1, max);
             if(balance[playerID] > max){
                 max = balance[playerID];
                 maxMove = move;
@@ -112,9 +112,10 @@ class GameTreeEvaluator extends Thread {
         {0f, 0f, 0f, -Float.MAX_VALUE},
     };
 
-    private float[] evaluateSubtree(GameState gameState, int playerID, int maxDepth, int depth){
+    private float[] evaluateSubtree(GameState gameState, int playerID, int maxDepth, int depth, float max){
+        int prevPlayerID = playerID-1 & 0b11;
         if(stop) {
-            return MIN_BALANCE[playerID];
+            return MIN_BALANCE[prevPlayerID]; // if we abort we make it so that next previous player wont pick this move
         }
 
         if(gameState.isEndState()){
@@ -122,15 +123,30 @@ class GameTreeEvaluator extends Thread {
         } else if(depth >= maxDepth) {
             return gameState.evaluate(evalWeights);
         } else {
-            float[] maxBalance = MIN_BALANCE[playerID];
-            for (Move move : gameState.getPossibleMoves(playerID)) {
-                float[] balance = evaluateSubtree(new GameState(gameState, move), playerAfter(playerID), maxDepth, depth + 1);
-                if(balance[playerID] > maxBalance[playerID]) {
-                    maxBalance = balance;
+            float[] bestBalance = MIN_BALANCE[playerID];
+
+            for (Move move : gameState.getPossibleMoves(playerID)){
+                float[] balance = evaluateSubtree(
+                    new GameState(gameState, move), 
+                    playerAfter(playerID), 
+                    maxDepth, 
+                    depth + 1, 
+                    bestBalance[playerID]
+                );
+
+                // the best balance is the balance that is better for me
+                if(balance[playerID] > bestBalance[playerID]) {
+                    bestBalance = balance;
+                }
+
+                // see if we can do a cutoff (not guranteed to be correct)
+                if(bestBalance[prevPlayerID] <= max) {
+                    // prev player already has a better move, don't bother to calculate the rest of this subtree
+                    break;
                 }
             }
 
-            return maxBalance;
+            return bestBalance;
         }
     }
 

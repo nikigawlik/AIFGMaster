@@ -18,12 +18,14 @@ public class Client extends Thread {
     }
 
     private int id;
-    private int timeLimit;
-    NetworkClient client;
+    private float timeLimit;
+    private NetworkClient client;
     private GameState gameState;
-    Random random;
+    private Random random;
 
-    private final float[] weights = new float[] {1.645f, -1.119f, -0.617f, 0.692f};
+    // static final private float[] WEIGHTS = new float[] {1.645f, -1.119f, -0.617f, 0.692f};
+    static final private float[] WEIGHTS = new float[] {1.436f, -0.378f, -0.541f, -0.366f};
+    static final private int MAX_DEPTH = 10;
 
     public Client() {
         this.id = -1;
@@ -42,11 +44,10 @@ public class Client extends Thread {
 
         this.random = new Random();
 
-        this.client = new NetworkClient(null, "Bobobot" + (10 + random.nextInt(90)), logo);
+        this.client = new NetworkClient(null, generateName(), logo);
 
         this.id = client.getMyPlayerNumber();
-        this.timeLimit = client.getTimeLimitInSeconds();
-        client.getExpectedNetworkLatencyInMilliseconds();
+        this.timeLimit = (float)client.getTimeLimitInSeconds() - client.getExpectedNetworkLatencyInMilliseconds() / 1000f;
 
         this.gameState = new GameState();
 
@@ -70,25 +71,24 @@ public class Client extends Thread {
             }
 
             if (move == null) {
-                // ArrayList<Move> moves = gameState.getPossibleMoves(this.id);
-                // if(moves.size() > 0) {
-                // move = moves.get(random.nextInt(moves.size()));
-                // client.sendMove(move);
-                // } else {
-                // System.out.println("NO POSSIBLE MOVES!");
-                // }
-
-                GameTreeEvaluator gte = new GameTreeEvaluator(gameState, this.id, 9, weights);
+                GameTreeEvaluator gte = new GameTreeEvaluator(
+                    gameState, 
+                    this.id, 
+                    MAX_DEPTH, 
+                    WEIGHTS
+                );
                 logTimedStatus(this.id, t0, "start calculation.");
                 gte.start();
+
                 try {
-                    Thread.sleep(3500);
+                    gte.join((long)(timeLimit * 1000 - 200));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                logTimedStatus(this.id, t0, "aborting search.");
+
+                logTimedStatus(this.id, t0, "aborting search or done.");
                 move = gte.getResult(true);
-                logTimedStatus(this.id, t0, "search aborted.");
+                logTimedStatus(this.id, t0, "result get.");
                 if(move != null) {
                     client.sendMove(move);
                     logTimedStatus(this.id, t0, "move sent.");
@@ -104,5 +104,19 @@ public class Client extends Thread {
 
     private void logTimedStatus(int playerID, long t0, String message) {
         System.out.println("p" + playerID + ": " + message + " t+" + ((System.nanoTime() - t0) / 1000000) + "ms");
+    }
+
+    private String generateName() {
+        String[] kons = {"qu", "w", "wh", "r", "rr", "rh", "t", "th", "tz", "tr", "z", "zh", "p", "ph", "phl", "pt", "s", "sh", "sch", "sc", "sk", "sl", "sw", "sn", "d", "dh", "dn", "dw", "f", "fl", "fr", "g", "gh", "gl", "gr", "h", "k", "kl", "kh", "kr", "kw", "l", "y", "x", "c", "ch", "cl", "v", "vl", "b", "bl", "bh", "bw", "n", "nl", "nh", "m", "mh", "ml"};
+        String[] vocs = {"a", "a", "aa", "au", "e", "ei", "ee", "eh", "i", "ii", "ie", "i", "o", "oo", "oof", "oh", "ou", "oe", "oau", "u", "uu", "u", "ui", "ue"};
+
+        String name = "";
+        for(int i = 0; i < 3; i++) {
+            name += kons[random.nextInt(kons.length)];
+            name += vocs[random.nextInt(vocs.length)];
+        }
+        name += kons[random.nextInt(kons.length)];
+
+        return name;
     }
 }

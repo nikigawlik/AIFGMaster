@@ -44,7 +44,6 @@ class GameState {
         // 2 - stones that left the board
         // 3 - crowding
         float[] balance = new float[4];
-        float sum = 0;
 
         // add win points
         for(int i = 0; i < 4; i++) {
@@ -63,7 +62,6 @@ class GameState {
                     int locY = localY(playerID, x, y);
                     // points for that player
                     balance[playerID] += (locY + 1) * weights[0];
-                    sum += locY;
 
                     if(locY < 6)
                         balance[playerID] += tileAtLocal(playerID, locX, locY+1) == playerID? weights[3] : 0;
@@ -72,7 +70,7 @@ class GameState {
         }
 
         // offset by average
-        float offset = -sum / 4.0f;
+        float offset = -(balance[0] + balance[1] + balance[2] + balance[3]) / 4.0f;
         for(int i = 0; i < 4; i++) {
             balance[i] += offset;
         }
