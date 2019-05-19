@@ -42,7 +42,7 @@ class GameState {
         // 0 - stone progression
         // 1 - stones held back in hand
         // 2 - stones that left the board
-        // 3 - randomn
+        // 3 - crowding
         float[] balance = new float[4];
         float sum = 0;
 
@@ -51,20 +51,23 @@ class GameState {
             balance[i] += playerPoints[i] * 8 * weights[0]; // has to count for at least one more than max distance stone on field (7)
             balance[i] += playerStacks[i] * weights[1];
             balance[i] += playerPoints[i] * weights[2];
-            // balance[i] += (float) Math.random() * weights[3];
         }
 
-        for(int x = 0; x < 7; x++)
-        for(int y = 0; y < 7; y++) {
-            // int locX = localX(playerID, x, y);
-            int tileID = tileAt(x, y);
-            
-            if(tileID != 0) {
-                int playerID = tileID - 1;
-                int locY = localY(playerID, x, y);
-                // points for that player
-                balance[playerID] += (locY + 1) * weights[0];
-                sum += locY;
+        for(int x = 0; x < 7; x++) {
+            for(int y = 0; y < 7; y++) {
+                int tileID = tileAt(x, y);
+                
+                if(tileID != 0) {
+                    int playerID = tileID - 1;
+                    int locX = localX(playerID, x, y);
+                    int locY = localY(playerID, x, y);
+                    // points for that player
+                    balance[playerID] += (locY + 1) * weights[0];
+                    sum += locY;
+
+                    if(locY < 6)
+                        balance[playerID] += tileAtLocal(playerID, locX, locY+1) == playerID? weights[3] : 0;
+                }
             }
         }
 

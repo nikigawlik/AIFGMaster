@@ -80,6 +80,10 @@ class GameTreeEvaluator extends Thread {
         return result;
     }
 
+    public Move getResultDirect() {
+        return getMoveFor(this.gameState, this.playerID, this.maxDepth);
+    }
+
     public void run() {
         result = getMoveFor(this.gameState, this.playerID, this.maxDepth);
     }

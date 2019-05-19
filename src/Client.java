@@ -23,6 +23,8 @@ public class Client extends Thread {
     private GameState gameState;
     Random random;
 
+    private final float[] weights = new float[] {1.645f, -1.119f, -0.617f, 0.692f};
+
     public Client() {
         this.id = -1;
     }
@@ -76,7 +78,7 @@ public class Client extends Thread {
                 // System.out.println("NO POSSIBLE MOVES!");
                 // }
 
-                GameTreeEvaluator gte = new GameTreeEvaluator(gameState, this.id, 9, new float[] {0.937f, 0.115f, -1.732f, 1.108f});
+                GameTreeEvaluator gte = new GameTreeEvaluator(gameState, this.id, 9, weights);
                 logTimedStatus(this.id, t0, "start calculation.");
                 gte.start();
                 try {

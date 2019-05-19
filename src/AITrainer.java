@@ -1,8 +1,11 @@
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
 import java.util.stream.IntStream;
 
 import lenz.htw.sawhian.Move;
@@ -10,7 +13,7 @@ import lenz.htw.sawhian.Move;
 class AITrainer {
     final static int GENERATION_SIZE = 100;
     final static int GENERATIONS = 100;
-    final static int[] OFFSETS = {1,3,5,7,11};
+    final static int[] OFFSETS = { 1, 3, 5, 7, 11 };
     final static float SURVIVER_RATIO = 0.33f;
     final static float MUTATION_DRIVE = 0.5f;
     final static float MUTATION_CHANCE = 0.05f;
@@ -20,6 +23,20 @@ class AITrainer {
         AITrainer trainer = new AITrainer();
         float[][] playerTuples = new float[GENERATION_SIZE][GameState.EVAL_TUPLE_SIZE];
         Random rand = new Random();
+        Logger logger = Logger.getLogger(AITrainer.class.getName());
+        FileHandler fileHandler;
+        try {
+            fileHandler = new FileHandler("AITrainer.log", true);
+        } catch (SecurityException e) {
+            e.printStackTrace();
+            return;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return;
+        }
+        logger.addHandler(fileHandler);
+
+        logger.info("Start training " + "(v0.1)");
 
         // initialize with random values
         for(int i = 0; i < GENERATION_SIZE; i++) {
@@ -30,7 +47,7 @@ class AITrainer {
 
         int generation = 0;
         while(generation < GENERATIONS) {
-            System.out.println("Starting on generation " + generation);
+            logger.info("Starting on generation " + generation);
             // test
             int[] wins = new int[GENERATION_SIZE];
             int draws = 0;
@@ -56,13 +73,13 @@ class AITrainer {
                 }
             }
             // show results in console
-            System.out.print("Wins: ");
+            String str = "Wins: ";
             for (int win : wins) {
-                System.out.print(win + ", ");
+                str += win + ", ";
             }
-            System.out.println();
-            System.out.println("Draws: " + draws);
-            System.out.println("Played games: " + games);
+            str += "\n";
+            str += "Draws: " + draws + "\n";
+            str += "Played games: " + games + "\n";
             // recombine & mutate
             int[] ids = 
                 IntStream.range(0, GENERATION_SIZE).boxed()
@@ -70,7 +87,8 @@ class AITrainer {
                 .mapToInt(i -> (int)i).toArray();
             ;
             
-            System.out.println("Best tuple: " + Arrays.toString(playerTuples[ids[0]]));
+            str += "Best tuple: " + Arrays.toString(playerTuples[ids[0]]) + "\n";
+            logger.info(str);
 
             // preserve 25% and recombine rest
             List<float[]> newTuples = new ArrayList<>();
@@ -101,8 +119,6 @@ class AITrainer {
     public AITrainer() {
     }
 
-    private int c = 0;
-
     private GameState runTestGame(float[][] playerTuples) {
         GameState gameState = new GameState();
         int playerID = 0;
@@ -110,9 +126,7 @@ class AITrainer {
         while(true) {
             float[] evalWeights = playerTuples[playerID];
             GameTreeEvaluator gte = new GameTreeEvaluator(gameState, playerID, 2, evalWeights);
-            gte.setName("GTE" + c++);
-            gte.start();
-            Move move = gte.getResult(false);
+            Move move = gte.getResultDirect();
 
             if(move != null) {
                 gameState.performMove(move);
