@@ -2,14 +2,14 @@
     "configurations": [
         {
             "type": "java",
-            "name": "CodeLens (Launch) - AITrainer",
+            "name": "AITrainer",
             "request": "launch",
             "mainClass": "AITrainer",
             "projectName": "aifgm"
         },
         {
             "type": "java",
-            "name": "CodeLens (Launch) - GameTreeEvaluator",
+            "name": "GameTreeEvaluator",
             "request": "launch",
             "mainClass": "GameTreeEvaluator",
             "projectName": "aifgm",
@@ -17,17 +17,25 @@
         },
         {
             "type": "java",
-            "name": "CodeLens (Launch) - GameState",
+            "name": "GameState",
             "request": "launch",
             "mainClass": "GameState",
             "projectName": "aifgm"
         },
         {
             "type": "java",
-            "name": "CodeLens (Launch) - Client",
+            "name": "Client",
             "request": "launch",
             "mainClass": "Client",
             "projectName": "aifgm"
+        },
+        {
+            "type": "java",
+            "name": "Client - console",
+            "request": "launch",
+            "mainClass": "Client",
+            "projectName": "aifgm",
+            "console": "integratedTerminal"
         }
     ]
 }
