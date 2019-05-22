@@ -11,7 +11,7 @@ import lenz.htw.sawhian.net.NetworkClient;
 public class Client extends Thread {
     public static void main(String[] args) {
         // start 4 clients for testing purposes
-        for (int i = 0; i < 4; i++) {
+        for (int i = 0; i < PLAYER_NUMBER; i++) {
             Client c = new Client();
             c.start();
         }
@@ -25,7 +25,9 @@ public class Client extends Thread {
 
     // static final private float[] WEIGHTS = new float[] {1.645f, -1.119f, -0.617f, 0.692f};
     static final private float[] WEIGHTS = new float[] {1.436f, -0.378f, -0.541f, -0.366f}; // values determined by genetic algorithm
-    static final private int MAX_DEPTH = 10;
+    static final private int MAX_DEPTH = 11;
+    static final private String HOST_NAME = "141.45.214.101";
+    static final private int PLAYER_NUMBER = 1;
 
     public Client() {
         this.id = -1;
@@ -43,7 +45,7 @@ public class Client extends Thread {
         }
 
         this.random = new Random();
-        this.client = new NetworkClient(null, generateName(), logo);
+        this.client = new NetworkClient(HOST_NAME, generateName(), logo);
         this.id = client.getMyPlayerNumber();
         this.timeLimit = (float)client.getTimeLimitInSeconds() - client.getExpectedNetworkLatencyInMilliseconds() / 1000f;
         this.gameState = new GameState();
