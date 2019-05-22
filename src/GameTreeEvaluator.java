@@ -104,7 +104,7 @@ class GameTreeEvaluator extends Thread {
 
         for (Move move : moves) {
             float[] balance = evaluateSubtree(new GameState(gameState, move), (playerID + 1) & 0b11, maxDepth, 1, max);
-            if(balance[playerID] > max){
+            if(balance[playerID] >= max){
                 max = balance[playerID];
                 maxMove = move;
             }
@@ -147,7 +147,7 @@ class GameTreeEvaluator extends Thread {
                 );
 
                 // the best balance is the balance that is better for me, other approaches possible
-                if(balance[playerID] > bestBalance[playerID]) {
+                if(balance[playerID] >= bestBalance[playerID]) {
                     bestBalance = balance;
                 }
 
