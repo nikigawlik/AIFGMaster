@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+    <html>
+    <head>
+        <meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+        <title>AI For Games Sommersemester 2029 - Dokumentation Projekt 1</title>
+        
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+        
+        <style>
+.task-list-item { list-style-type: none; } .task-list-item-checkbox { margin-left: -20px; vertical-align: middle; }
+</style>
+        <style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        
+        
+    </head>
+    <body>
+        <h1 id="ai-for-games-sommersemester-2029---dokumentation-projekt-1">AI For Games Sommersemester 2029 - Dokumentation Projekt 1</h1>
+<p>Die Aufgabe dieses Projektes ist es eine AI für das für das Brettspiel &quot;Sawhian&quot; zu entwickeln. Für das finden von Zügen wird eine Suche im Spielbaum verwendet. Die Heuristik für das Bewerten von Spiel-Zuständen wird von einem genetischen Algorithmus optimiert.</p>
+<h2 id="die-grundlagen">Die Grundlagen</h2>
+<p>Damit die AI entwickelt werden kann müssen zuerst ein Fundament von Basis-Funktionalitäten geschaffen werden, auf dem die AI aufgebaut werden kann.</p>
+<h3 id="der-client">Der Client</h3>
+<p>Die Klasse <code>Client</code> ist gewissermaßen der Einstiegspunkt des Projekts. Hier läuft die Main-Loop der AI und es werden auf die anderen Klassen zugegriffen. Der Client erzeugt und verwaltet Instanzen von <code>GameState</code> und <code>GameTreeEvaluator</code> und verwendet diese um den passenden Zug zu finden um diesen dann an den Server zu schicken. Der Client selber erbt von der Klasse Thread. Somit können zu Testzwecken einfach mehrere Clients erzeugt werden und parallel laufen.</p>
+<p>Die Klasse Client enthält auch eine statische main-Methode, die einen oder mehrere Clients erzeugt und startet.</p>
+<h3 id="speichern-des-game-states">Speichern des Game States</h3>
+<p>Der Spielserver liefert keinerlei Informationen über den aktuellen Stand des Spieles. Dies hat zur Folge, das der Client seine eigene Datenstruktur implementieren muss, die den aktuellen Zustand (Game State) speichert. Dies wird durch die Klasse <code>GameState</code> getan, diese Klasse speichert welche Felder von welchen Spielern besetzt sind, sowie für jeden Spieler zusätzliche Informationen wie Punktestand und Steine auf der Hand und außerdem welcher Spieler gerade an der Reihe ist.</p>
+<p>Des weiteren muss dieser Zustand in einen anderen Zustand überführt werden, wenn ein Spieler einen Zug macht. Diese Überführung wird mit dem Konstruktor <code>public GameState(GameState gameState, Move move)</code> umgesetzt, der aus dem alten Zustand und einem Zug den Zustand nach dem ausführen des Zuges konstruiert. Die Start-Position des Spiels ist durch den Argument-losen-Konstruktor <code>public GameState()</code> gegeben.</p>
+<h3 id="legalit%c3%a4t-von-z%c3%bcgen">Legalität von Zügen</h3>
+<p>Um überhaupt zu wissen welche Züge der AI zur Verfügung stehen (ausgehen von einem bestimmten Zustand) müssen diese Spielregel-konform gefunden werden.</p>
+<p>Die Spielregeln für &quot;Sawhian&quot; lauten wie folgt (Zitiert aus der Aufgabenstellung:)</p>
+<ul>
+<li>Vier Spieler spielen im Uhrzeigersinn.</li>
+<li>Es dürfen nur eigene Spielsteine gezogen werden, entweder vom nicht-leeren Steinstapel auf ein freies Feld am eigenen Spielbrettrand oder ein bereits auf dem Feld befindlicher Stein.</li>
+<li>Steine auf dem Feld werden immer nur vorwärts (=vom Besitzer weg) gezogen.</li>
+<li>Steine auf dem Feld werden wie folgt gezogen:
+<ul>
+<li>Auf das Feld unmittelbar vor ihnen sofern frei ODER</li>
+<li>Vom Spielbrett runter, wenn das Spielbrett unmittelbar vor ihnen endet ODER</li>
+<li>Springend über eine beliebig lange Kette von abwechselnd nicht-eigenen Steinen und leeren Feldern. Der Zug endet entweder auf dem letzten leeren Feld der Kette oder der Stein wird vom Spielbrett entfernt, falls die Kette am Spielbrettrand mit einem nicht-eigenen Stein endet.</li>
+</ul>
+</li>
+<li>Jeder vom Spielbrett genommene eigene Stein gibt einen Punkt.</li>
+<li>Gibt ein Spieler keinen gültigen oder gar keinen Zug innerhalb der vorgegebenen Zeitlimits ab, so scheidet er aus dem Spiel aus. Seine Punkte bleiben erhalten und seine auf dem Brett liegenden Steine bleiben liegen.</li>
+<li>Das Spiel endet umgehend, sobald ein Spieler seinen letzten Stein vom Spielbrett entfernt oder kein Spieler mehr am Spiel teilnimmt.</li>
+</ul>
+<p>Das finden von möglichen Zügen ist in der Methode <code>getPossibleMoves</code> der Klasse <code>GameState</code> implementiert. Da diese Methode auf einer GameState-Instanz aufgerufen wird, findet sie die Züge ausgehend von diesem Zustand und dem Spieler der laut diesem Zustand an der Reihe ist. Diese Methode prüft für alle 49 Felder des Spielfeldes, ob hier ein Zug möglich ist. Die Methode zum prüfen eines Zuges an einer bestimmten Position ist <code>processMove</code>. Dieselbe Methode kann auch verwendet werden um den Zug auszuführen, dies vermeidet Code Duplication.</p>
+<h3 id="transformation-des-spielfeldes">Transformation des Spielfeldes</h3>
+<p>Um Methoden wie <code>processMove</code> Spieler-unabhängig zu implementieren muss eine Transformation ausgeführt werden. Die Züge, die an den Server gesendet werden geben Koordinaten absolut an, aber für die Validierung und Ausführung von Zügen ist es nützlich die Koordinaten relativ zu einem bestimmten Spieler anzugeben.</p>
+<p>Hierfür wurden die statischen Methoden <code>localX</code> und <code>localY</code> implementiert. Diese berechnen die lokale (zum Spieler relative) x- bzw. y-Koordinate. Praktisch gesehen handelt es sich hierbei um eine Rotation in 90°-Schritten (90° mal Spieler-Nummer). Um umgekehrt von lokalen zu globalen Koordinaten umzurechnen gibt es die Methoden <code>globalX</code> und <code>globalY</code>.</p>
+<h2 id="der-spielbaum">Der Spielbaum</h2>
+<p>Mit der im vorherigen Kapitel beschriebenen Funktionalität kann man bereits eine &quot;AI&quot; schreiben, die den aktuellen Zustand speichert und dann jeweils einen zufälligen Zug aus den möglichen Zügen auswählt und an den Server schickt. Um jedoch eine schlau wirkende AI zu entwickeln, sollte diese einen möglichst guten Zug finden und vorausschauend agieren.</p>
+<p>Dies soll durch das Konzept des Durchsuchens des Spielbaums ermöglicht werden und ist in der Klasse <code>GameTreeEvaluator</code> implementiert.</p>
+<h3 id="das-prinzip">Das Prinzip</h3>
+<p>Der Spielbaum ist die abstrakte Baum-Darstellung aller möglichen zukünftigen Spielzustände ausgehend von einem Zustand.</p>
+<p><img src="baum.svg" alt="Beispiel Spielbaum"></p>
+<p>In diesem Baum können wir jedem Zustand einen Wert zuweisen, der beschreibt wie günstig dieser Zustand für uns ist. Um diesen Wert herauszufinden müssen die Kinder-Knoten dieses Zustands betrachtet werden (also alle Zustände, die sich aus den möglichen Zügen dieses Zustands ergeben). Es wird der maximale Wert aus den Werten dieser Knoten gewählt - wobei hier &quot;maximal&quot; aus Sicht des Spielers der an der Reihe ist definiert ist. Indem man im Baum eine Tiefensuche durchführt und dabei die Werte der Knoten von den Kindern nach oben durch ausrechnet, kann man allen Zuständen einen Wert zuweisen.</p>
+<p>Bei zwei Spielern spricht man von einem Min-Max-Algorithmus, da immer abwechselnd minimiert bzw. maximiert wird (maximieren aus der Sicht des Gegners = minimieren).
+Bei vier Spielern greift dieses Prinzip so nicht. Deshalb wurde die Bewertung des Zustands nicht durch eine Zahl des Wertebereichs [-∞, +∞] modelliert sondern stattdessen durch ein Tupel (x1, x2, x3, x4) aus vier Zahlen jeweils im Wertebereich [-∞, +∞]. Dieses Tupel ist normiert sodass die Summe der Komponenten 0 ergibt: x1 + x2 + x3 + x4 = 0</p>
+<p>Jede dieser Zahlen gibt an wie günstig der Zustand für den jeweiligen Spieler ist. So ist z.B. (-1, -1, -1, 3) ein für Spieler 4 günstiger Zustand. Durch die Normierung können die Bewertungen besser verglichen werden. Es sollte z.B. keinen Unterschied zwischen (1, 1, 1, 1) und (3, 3, 3, 3) geben, denn in beiden Szenarios sind die Spieler gleichauf.  Beide Tupel werden durch die Normierung auf (0, 0, 0, 0) abgebildet und sind somit nach der Normierung identisch.</p>
+<p><img src="tupelbaum.svg" alt="Spielbaume mit Tupeln">
+Nun können wir den Wert eines jeden Knoten im Spielbaum auf das Maximum der Kinder-Knoten setzen und hierbei das Maximum bezüglich des Spielers der gerade an der Reihe ist verwenden. Spieler 1 maximiert den ersten Wert im Tupel, Spieler 2 den zweiten, und so weiter.</p>
+<p>Ist ein Zustand ein End-Zustand, in dem ein Spieler gewonnen hat, wird der Tupel-Wert für diesen Zustand so gesetzt, dass der Gewinner +∞ hat und die Verlierer jeweils -∞. Für einen Gewinn von Spieler 1 wäre das z.B. (+∞, -∞, -∞, -∞).</p>
+<p>Da wir nicht den ganzen Spielbaum ausrechnen können (wegen Rechenzeit und Speicher-Limitationen), muss ab einer gewissen Tiefe eine Heuristik verwendet werden um die Suche im Spielbaum zu terminieren. Diese Heuristik ist in <code>GameState.evaluate</code> implementiert und addiert verschiedene Gewinn-Indikatoren, z.B. wie vorangeschritten die Steine auf dem Spielfeld sind, wie viele Steine in der Hand sind und wie nah Steine beieinander sind. Auf die Gewichtung dieser Indikatoren wir später genauer eingegangen.</p>
+<h3 id="threading">Threading</h3>
+<p>Die Implementierung des Algorithmus macht es einfach die Suche ab einer bestimmten Tiefe abzubrechen. Dies ist aber für die Aufgabenstellung nicht direkt zielführend, da für jeden Zug eine begrenzte Zeit zur Verfügung steht. Es wäre also schön die Suche nach einer gewissen Zeit abbrechen zu können.</p>
+<p>Um dies zu ermöglichen erbt die Klasse <code>GameTreeEvaluator</code> ebenfalls von <code>Thread</code>. Um eine Suche durchzuführen wird eine Instanz von <code>GameTreeEvaluator</code> erzeugt und die Suche gestartet. Um den Thread dann abzubrechen wir die Methode <code>getResult</code> aufgerufen. Diese Methode setzt eine Flag auf true, die bewirkt dass in der rekursiv implementierten Suche sofort abgebrochen wird und noch nicht berechnete Zweige nicht in Erwägung gezogen werden.</p>
+<p>Dies hat natürlich das Problem, dass bestimmte Teilbäume gar nicht berechnet werden und somit ein guter Zug verpasst werden kann. Dies wurde dadurch versucht zu vermeiden, dass die Tiefe so gewählt wird das das Zeitlimit üblicherweise nicht erreicht wird.
+Eine bessere Strategie wäre eventuell die Züge der Heuristik nach zu sortieren. Oder den Spielbaum hintereinander in mehreren Tiefen zu berechnen. Dies Ansätze wurden allerdings nicht implementiert.</p>
+<h3 id="alpha-beta-optimierung">Alpha-Beta-Optimierung</h3>
+<p>Eine Art und Weise die Suchzeit zu verkürzen ist mit Hilfe von Alpha-Beta-Optimierung bestimmte Teilbäume &quot;abzuschneiden&quot;, d.h. von der weiteren Berechnung auszuschließen, wenn garantiert werden kann, dass von diesem Teilbaum kein besseres Ergebnis zu erwarten ist.</p>
+<p>Diese Garantie ist bei zwei Spielern möglich, da der andere Spieler einen für uns minimal günstigen Zug wählt. Bei vier Spielern ist das allerdings nicht gegeben, da der nächste Spieler unter Umständen einen Zug wählen könnte der für mich und für ihn gut ist, aber für die anderen Spieler schlecht.</p>
+<p>Oder anders ausgedrückt: Wenn man als Bewertung eines Zustands das bereits beschriebene Tupel verwendet gibt es keine Möglichkeit die Alpha-Beta-Optimierung zu implementieren.</p>
+<p>Es wurde die Alpha-Beta Optimierung trotzdem implementiert und zwar wie folgt: Ist in einem Unter-Baum der aktuell beste Zug des aktuellen Spielers für den vorherigen Spieler schlechter als der bisher beste Zug für den vorherigen Spieler, wird dieser Unterbaum abgebrochen. Dies folgt der Logik, dass der vorherige Spieler diesen Unterbaum nicht wählen wird, da hier der bisher beste Zug schlecht für den vorherigen Spieler ist.</p>
+<p>Dies funktioniert nicht garantiert, da unter Umständen ein Zug gefunden werden könnte, der sowohl für den aktuellen Spieler besser ist als auch für den vorherigen Spieler besser ist. Nimmt man an, das dies unwahrscheinlich ist, ist die Optimierung unter Umständen dennoch sinnvoll. Dies müsste allerdings genauer untersucht werden.</p>
+<h2 id="der-trainer">Der Trainer</h2>
+<p>Wie bereits erwähnt wurde eine Heuristik-Funktion geschrieben, diese ist in <code>GameState.evaluate</code> implementiert. Die Funktion nimmt als Parameter ein Array aus vier Float-Werten. Jeder dieser float-Werte ist eine Gewichtung für einen bestimmten Aspekt, der gemessen wird und kann einen Wert zwischen -1 und 1 annehmen. Die Werte sind wie folgt (entnommen aus einem Programmcode-Kommentar):</p>
+<pre><code>0 - stone progression
+1 - stones held back in hand
+2 - stones that left the board
+3 - crowding (keeping your stones close together)
+</code></pre>
+<p>Der AI-Trainer (Klasse <code>AITrainer</code>) hat nun die Aufgabe für diese vier Parameter möglichst optimale Werte zu ermitteln. Dazu wurde ein genetischer Algorithmus verwendet.</p>
+<p>Der Algorithmus läuft für 100 Generationen. In der ersten Generation wird eine Liste an Tupeln erstellt, jedes Tupel ist gefüllt mit vier zufälligen Werten zwischen -1 und 1.</p>
+<p>Zu Beginn einer Generation werden 500 Testspiele gespielt (Generationsgröße mal fünf). Diese Testspiele laufen ohne Server, es wird lediglich ein Spiel durch die GameState-Klasse und vier GameTreeEvaluators simuliert. Passen alle vier Spieler ist das ein Unentschieden. Welche Spieler gegeneinander spielen ist dabei zufällig da die Liste and Tupeln nach jeder Generation gemischt wird (genauere Implementationsdetails sind den Code-Kommentaren zu entnehmen). Es wird sich gemerkt wie viele Spiele jeder Spieler gewonnen hat und die Spieler werden nach ihrer Anzahl an gewonnenen Spieler sortiert.</p>
+<p>Die besten 25% werden so wie sie sind in die nächste Generation übernommen. Die restlichen 75% sind jeweils eine Kombination aus zwei &quot;Eltern&quot; der 25%. Hierbei wird für jeden Parameter des Tupels zufällig der Wert von einem der Elternteile ausgewählt. In 5% der Fälle wird außerdem eine zufällige Zahl zwischen -0.5 und 0.5 addiert, um Mutationen zu simulieren.</p>
+<p>Der gesamte Vorgang wird in eine log-Datei geschrieben. Jede Generation werden die Gewinne der Spieler, die Anzahl an Unentschieden und das Tupel des besten Spielers geloggt. Dies erlaubt aus diesen Daten Diagramme zu erstellen.</p>
+<p>Hier ist z.B. eine Visualisierung eines Trainingsprozesses zu sehen:</p>
+<p><img src="drawsDiagram.png" alt="Draws"></p>
+<p><img src="valuesDiagram.png" alt="Entwicklung der Tupel-Werte"></p>
+<p>Man kann erkennen, dass die Anzahl der unentschiedenen Spiele rapide sinkt und dann niedrig bleibt, was bedeutet, das die Spieler gut darin werden Unentschieden zu vermeiden. Außerdem sieht man, dass sich das beste Tupel durchaus einem groben Optimalwert annähert. Es ist allerdings nicht gut, dass hier von Generation zu Generation auch gegen Ende noch so große Schwankungen zu erkennen sind. Dies könnte man vielleicht durch eine höhere Anzahl an Test-Spielen oder einer geringeren Mutations-Wahrscheinlichkeit oder -Stärke vermeiden.</p>
+<h1 id="fazit">Fazit</h1>
+<p>Es ist gelungen eine passable AI zu implementieren. Es ist fragwürdig ob der genetische Algorithmus bei einer so geringen Anzahl an Parametern zielführend war. Man könnte die Heuristik noch flexibler gestalten um hier bessere Ergebnisse zu erzielen.
+Man könnte die Spielbaum-Suche verbessern, sodass sie sich flexibler an das Zeitlimit anpasst, z.B. indem man die Züge nach der Heuristik sortiert, oder den Baum für inkrementelle Tiefen berechnet.
+Alles in allem hat sich der Spielbaum jedoch als gutes Mittel bewiesen um eine Brettspiel-AI zu implementieren.</p>
+
+    </body>
+    </html>
